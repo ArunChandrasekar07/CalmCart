@@ -84,19 +84,23 @@ npx expo start --android   # requires Android Studio + an emulator
 npx expo start --web       # runs in your browser
 ```
 
-## 📦 Building a real installable app (.apk / .aab / .ipa)
+## 📦 Installing CalmCart as a real, offline app (.apk) — no Expo Go, no WiFi needed
 
-Expo Go is for development. To get an actual installable file (e.g. to send to a friend, or upload to the Play Store/App Store), use **EAS Build** — it builds in the cloud, no Mac required even for iOS:
+The app already runs 100% offline once it's open — every screen uses local data, there are no network calls anywhere in the code. The only thing that needs internet/WiFi is the Expo Go *development* workflow above. To get a real `.apk` you install once and then open like any other app (no dev server, no WiFi matching, works on a flight), build it with **EAS Build** — Expo's free cloud build service. `eas.json` is already configured in this repo with a `preview` profile that produces a direct-install APK.
+
+One-time setup (from any computer — you only need this once, not every time you open the app):
 
 ```bash
 npm install -g eas-cli
-eas login
-eas build:configure
-eas build --platform android --profile preview   # gives you a downloadable .apk
-eas build --platform ios --profile preview        # gives you a downloadable .ipa (needs an Apple Developer account for a real device)
+eas login                     # free account at expo.dev — sign up if you don't have one
+eas build --platform android --profile preview
 ```
 
-This is free to start (EAS has a free tier with monthly build limits). Full guide: https://docs.expo.dev/build/introduction/
+The build runs in Expo's cloud (5–15 minutes). When it finishes, the terminal prints a link (and a QR code) to a page where you can **download the `.apk` straight to your phone** — open that link on your phone's browser, download, tap to install (Android will ask you to allow installs from this source once). After that, CalmCart is a normal app icon on your home screen. No computer, no WiFi, no Expo Go required to use it from then on.
+
+Prefer not to touch a terminal at all? You can also trigger the same build from a browser: go to https://expo.dev, sign in, link this GitHub repo, and start a build from the dashboard — it reads the same `eas.json`.
+
+This is free to start (EAS's free tier includes monthly builds). Full guide: https://docs.expo.dev/build/introduction/
 
 ## 🗺️ Next steps (if you want to go further)
 
