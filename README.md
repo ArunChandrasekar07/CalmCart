@@ -84,11 +84,25 @@ npx expo start --android   # requires Android Studio + an emulator
 npx expo start --web       # runs in your browser
 ```
 
-## 📦 Installing CalmCart as a real, offline app (.apk) — no Expo Go, no WiFi needed
+## 📦 Installing CalmCart as a real, offline app (.apk) — no Expo Go, no login, no WiFi needed
 
-The app already runs 100% offline once it's open — every screen uses local data, there are no network calls anywhere in the code. The only thing that needs internet/WiFi is the Expo Go *development* workflow above. To get a real `.apk` you install once and then open like any other app (no dev server, no WiFi matching, works on a flight), build it with **EAS Build** — Expo's free cloud build service. `eas.json` is already configured in this repo with a `preview` profile that produces a direct-install APK.
+The app already runs 100% offline once it's open — every screen uses local data, there are no network calls anywhere in the code. The only thing that needs internet/WiFi is the Expo Go *development* workflow above.
 
-One-time setup (from any computer — you only need this once, not every time you open the app):
+### Option A — GitHub Actions (recommended: zero accounts, zero terminal)
+
+This repo has a [`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml) workflow that builds a real, installable `.apk` automatically on GitHub's own cloud servers. No Expo account, no `eas login`, nothing to install on your computer.
+
+1. Go to the **Actions** tab of this repo on GitHub.
+2. Click **Build Android APK** in the left sidebar, then **Run workflow** → **Run workflow** (or just push any commit to `main` — it runs automatically).
+3. Wait ~5–10 minutes for the run to finish (green checkmark).
+4. Open the finished run and scroll to **Artifacts** at the bottom — download **CalmCart-apk**. It's a zip containing `app-release.apk`.
+5. Transfer the `.apk` to your Android phone (email it to yourself, Google Drive, USB, WhatsApp — any way you'd move a file), tap it to install (Android will ask you to allow installs from this source once).
+
+That's it — CalmCart is now a normal app icon on your home screen. No computer, no WiFi, no Expo Go needed to use it from then on. (This produces a debug-signed APK, which is perfectly fine for installing on your own device — it's not meant for the Play Store.)
+
+### Option B — EAS Build (Expo's cloud build service)
+
+`eas.json` is also configured in this repo with a `preview` profile, if you'd rather build through Expo's own service (needs a free expo.dev account):
 
 ```bash
 npm install -g eas-cli
@@ -96,11 +110,9 @@ eas login                     # free account at expo.dev — sign up if you don'
 eas build --platform android --profile preview
 ```
 
-The build runs in Expo's cloud (5–15 minutes). When it finishes, the terminal prints a link (and a QR code) to a page where you can **download the `.apk` straight to your phone** — open that link on your phone's browser, download, tap to install (Android will ask you to allow installs from this source once). After that, CalmCart is a normal app icon on your home screen. No computer, no WiFi, no Expo Go required to use it from then on.
+The build runs in Expo's cloud (5–15 minutes). When it finishes, the terminal prints a link (and a QR code) to a page where you can download the `.apk` straight to your phone.
 
-Prefer not to touch a terminal at all? You can also trigger the same build from a browser: go to https://expo.dev, sign in, link this GitHub repo, and start a build from the dashboard — it reads the same `eas.json`.
-
-This is free to start (EAS's free tier includes monthly builds). Full guide: https://docs.expo.dev/build/introduction/
+Full guide: https://docs.expo.dev/build/introduction/
 
 ## 🗺️ Next steps (if you want to go further)
 

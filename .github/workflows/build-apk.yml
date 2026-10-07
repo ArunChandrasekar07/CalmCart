@@ -1,0 +1,47 @@
+name: Build Android APK
+
+# Builds a real, installable .apk on GitHub's own cloud runners — no Expo
+# account, no EAS login, nothing to install locally. Download the result
+# from the finished run's "Artifacts" section at the bottom of the page.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate native Android project (Continuous Native Generation)
+        run: npx expo prebuild --platform android --no-install
+        env:
+          EXPO_NO_GIT_STATUS: 1
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CalmCart-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
