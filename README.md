@@ -6,19 +6,33 @@ Built by **Arun C.** — Integrated M.Tech Software Engineering, VIT Vellore.
 
 ---
 
+## 🎯 Problem & what CalmCart does differently
+
+Mainstream grocery-delivery apps (Blinkit, Zepto, Instacart) are optimized for *speed and urgency* — countdown timers, flashing offers, dense cluttered grids — which is genuinely stressful for a large share of users: people with low vision or motor-control difficulty, older users, anyone shopping on a bad day. Accessibility in those apps is usually an OS-level afterthought (whatever iOS/Android VoiceOver happens to support), not a first-class, in-app, user-controlled setting.
+
+**CalmCart's differentiator is that accessibility and calm are the product**, not a bolt-on:
+
+- **Real, working accessibility controls** — Large Text, High Contrast, and Haptic (tap-confirmation) feedback are set once in onboarding (or anytime in Settings) and instantly reshape every single screen's font sizes, colors and button feedback — not a cosmetic toggle that does nothing.
+- **Dark Mode that's actually a second theme**, not an inverted filter — generated from the same design tokens so every screen stays legible and on-brand in both modes.
+- **Confidence-based recommendations, not manufactured urgency** — "For You" picks show *why* an item is suggested (last orders, frequency, seasonality, price drops) instead of countdown timers and flash-sale badges.
+- **Calm visual language** — generous whitespace, muted palette, no autoplaying banners or push-everything defaults (push notifications default on but are one honest tap away from off, and the app tells you plainly when they're off instead of hiding the setting).
+- **Fully offline-capable** — all data is local, so it isn't dependent on a live connection or a backend to demo or use, which also means zero tracking of your shopping data.
+
+This is the concrete answer to "what's uniquely solved here, not just re-skinned": **settings that visibly and immediately change the app for people who need them to**, on top of a full, real shopping flow.
+
 ## ✨ Features
 
 | Screen | What it does |
 |---|---|
-| **Onboarding** | First-run setup with toggleable preferences (Text Size, Contrast, Interaction Mode) |
+| **Onboarding** | First-run setup with *working* preferences — Text Size, Contrast, and Haptic/Interaction Mode apply instantly, live, as you toggle them |
 | **Home** | Live search across the catalog, category filter chips, product grid with one-tap "add to cart" |
 | **Product Detail** | Quantity stepper, confidence badge, full description, related products, add-to-cart with live price |
 | **Recommendations** | Filterable "For You" picks (Last 5 orders / Frequently bought / Seasonal / Price drops) |
 | **Notifications** | Grouped by date, unread indicators, tap-through to the related product, push/email toggle switches |
 | **Cart** | Quantities, line totals, promo code field, order summary (subtotal, delivery, discount, total), full checkout flow with a confirmation alert |
-| **Settings** | Profile identity, links to GitHub / portfolio / LeetCode, push & dark-mode toggles, app info |
+| **Settings** | Profile identity, links to GitHub / portfolio / LeetCode, a real Dark Mode / Large Text / High Contrast / Haptic Feedback / Push Notifications control center, app info |
 
-Everything is wired up with real state — the cart badge updates live in the tab bar, search filters as you type, checkout clears the cart and navigates home, etc. Product data is local/mock (no backend yet) — see "Next steps" below for hooking up Supabase.
+Everything is wired up with real state — the cart badge updates live in the tab bar, search filters as you type, checkout clears the cart and navigates home, Dark Mode/Large Text/High Contrast repaint every screen immediately and persist across restarts, etc. Product data is local/mock (no backend yet) — see "Next steps" below for hooking up Supabase.
 
 ## 🧱 Tech stack
 

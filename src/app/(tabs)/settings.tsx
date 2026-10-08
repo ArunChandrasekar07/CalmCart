@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/colors';
+import { useSettings } from '../../context/SettingsContext';
+import { useTheme, fs } from '../../theme/useTheme';
 
 const LINKS = [
   { icon: 'logo-github', label: 'GitHub', value: 'ArunChandrasekar07', url: 'https://github.com/ArunChandrasekar07' },
@@ -11,8 +12,45 @@ const LINKS = [
 ] as const;
 
 export default function SettingsScreen() {
-  const [push, setPush] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const {
+    darkMode,
+    setDarkMode,
+    largeText,
+    setLargeText,
+    highContrast,
+    setHighContrast,
+    hapticFeedback,
+    setHapticFeedback,
+    pushNotifications,
+    setPushNotifications,
+    tap,
+  } = useSettings();
+  const { colors, fonts, radius, scale } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
+
+  const toggleRow = (
+    icon: string,
+    label: string,
+    value: boolean,
+    onChange: (v: boolean) => void,
+    isLast = false
+  ) => (
+    <View key={label} style={[styles.linkRow, !isLast && styles.linkRowBorder]}>
+      <View style={styles.linkIcon}>
+        <Ionicons name={icon as any} size={18} color={colors.text} />
+      </View>
+      <Text style={[styles.linkLabel, { flex: 1 }]}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={(v) => {
+          tap();
+          onChange(v);
+        }}
+        trackColor={{ true: colors.primary, false: colors.border }}
+        thumbColor={colors.bg}
+      />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -48,22 +86,17 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>PREFERENCES</Text>
+        <Text style={styles.sectionLabel}>APPEARANCE</Text>
         <View style={styles.card}>
-          <View style={[styles.linkRow, styles.linkRowBorder]}>
-            <View style={styles.linkIcon}>
-              <Ionicons name="notifications-outline" size={18} color={colors.text} />
-            </View>
-            <Text style={[styles.linkLabel, { flex: 1 }]}>Push Notifications</Text>
-            <Switch value={push} onValueChange={setPush} trackColor={{ true: colors.dark }} />
-          </View>
-          <View style={styles.linkRow}>
-            <View style={styles.linkIcon}>
-              <Ionicons name="moon-outline" size={18} color={colors.text} />
-            </View>
-            <Text style={[styles.linkLabel, { flex: 1 }]}>Dark Mode</Text>
-            <Switch value={darkMode} onValueChange={setDarkMode} trackColor={{ true: colors.dark }} />
-          </View>
+          {toggleRow('moon-outline', 'Dark Mode', darkMode, setDarkMode)}
+          {toggleRow('text-outline', 'Large Text', largeText, setLargeText)}
+          {toggleRow('contrast-outline', 'High Contrast', highContrast, setHighContrast, true)}
+        </View>
+
+        <Text style={styles.sectionLabel}>NOTIFICATIONS & FEEDBACK</Text>
+        <View style={styles.card}>
+          {toggleRow('notifications-outline', 'Push Notifications', pushNotifications, setPushNotifications)}
+          {toggleRow('hand-left-outline', 'Haptic Feedback (Interaction Mode)', hapticFeedback, setHapticFeedback, true)}
         </View>
 
         <Text style={styles.sectionLabel}>ABOUT</Text>
@@ -73,7 +106,7 @@ export default function SettingsScreen() {
               <Ionicons name="basket-outline" size={18} color={colors.text} />
             </View>
             <Text style={[styles.linkLabel, { flex: 1 }]}>CalmCart</Text>
-            <Text style={styles.linkValue}>v1.0.0</Text>
+            <Text style={styles.linkValue}>v1.1.0</Text>
           </View>
           <View style={styles.linkRow}>
             <View style={styles.linkIcon}>
@@ -90,57 +123,66 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, paddingBottom: 60 },
-  title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text, marginBottom: 20 },
-  profileCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    paddingVertical: 28,
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.avatar,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  avatarText: { fontFamily: fonts.bold, fontSize: 20, color: colors.text },
-  name: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
-  role: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 4, textAlign: 'center', paddingHorizontal: 20 },
-  email: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, marginTop: 6 },
-  sectionLabel: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  card: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  linkRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
-  linkIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkLabel: { fontFamily: fonts.medium, fontSize: 14, color: colors.text },
-  linkValue: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  footer: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, textAlign: 'center', marginTop: 12 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: ReturnType<typeof useTheme>['radius'], fonts: ReturnType<typeof useTheme>['fonts'], scale: number) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    content: { padding: 20, paddingBottom: 60 },
+    title: { fontFamily: fonts.bold, fontSize: fs(22, scale), color: colors.text, marginBottom: 20 },
+    profileCard: {
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      alignItems: 'center',
+      paddingVertical: 28,
+      marginBottom: 24,
+    },
+    avatar: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.avatar,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+    },
+    avatarText: { fontFamily: fonts.bold, fontSize: fs(20, scale), color: colors.text },
+    name: { fontFamily: fonts.bold, fontSize: fs(18, scale), color: colors.text },
+    role: {
+      fontFamily: fonts.regular,
+      fontSize: fs(12, scale),
+      color: colors.textSecondary,
+      marginTop: 4,
+      textAlign: 'center',
+      paddingHorizontal: 20,
+    },
+    email: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textMuted, marginTop: 6 },
+    sectionLabel: {
+      fontFamily: fonts.semiBold,
+      fontSize: fs(11, scale),
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+      marginBottom: 8,
+      marginTop: 4,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      marginBottom: 20,
+      overflow: 'hidden',
+    },
+    linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+    linkRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+    linkIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    linkLabel: { fontFamily: fonts.medium, fontSize: fs(14, scale), color: colors.text },
+    linkValue: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textSecondary, marginTop: 2 },
+    footer: { fontFamily: fonts.regular, fontSize: fs(11, scale), color: colors.textMuted, textAlign: 'center', marginTop: 12 },
+  });
+}

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, StyleSheet, ViewStyle, StyleProp, ActivityIndicator } from 'react-native';
-import { colors, fonts, radius } from '../theme/colors';
+import { useTheme } from '../theme/useTheme';
+import { fs } from '../theme/useTheme';
+import { useSettings } from '../context/SettingsContext';
 
 type Props = {
   label: string;
@@ -9,6 +11,8 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
   loading?: boolean;
+  /** Set false for buttons that already fire their own haptic (rare). */
+  haptics?: boolean;
 };
 
 export default function PrimaryButton({
@@ -18,11 +22,21 @@ export default function PrimaryButton({
   style,
   disabled,
   loading,
+  haptics = true,
 }: Props) {
+  const { colors, fonts, radius, scale } = useTheme();
+  const { tap } = useSettings();
+  const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
   const isPrimary = variant === 'primary';
+
+  const handlePress = () => {
+    if (haptics) tap();
+    onPress?.();
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.base,
@@ -33,7 +47,7 @@ export default function PrimaryButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.white : colors.text} />
+        <ActivityIndicator color={isPrimary ? colors.onPrimary : colors.text} />
       ) : (
         <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelSecondary]}>
           {label}
@@ -43,17 +57,19 @@ export default function PrimaryButton({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    height: 52,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  primary: { backgroundColor: colors.dark },
-  secondary: { backgroundColor: colors.card },
-  label: { fontFamily: fonts.semiBold, fontSize: 15 },
-  labelPrimary: { color: colors.white },
-  labelSecondary: { color: colors.text },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: ReturnType<typeof useTheme>['radius'], fonts: ReturnType<typeof useTheme>['fonts'], scale: number) {
+  return StyleSheet.create({
+    base: {
+      height: 52,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+    },
+    primary: { backgroundColor: colors.primary },
+    secondary: { backgroundColor: colors.card },
+    label: { fontFamily: fonts.semiBold, fontSize: fs(15, scale) },
+    labelPrimary: { color: colors.onPrimary },
+    labelSecondary: { color: colors.text },
+  });
+}

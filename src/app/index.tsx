@@ -1,26 +1,57 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { colors, fonts, radius } from '../theme/colors';
+import { useTheme, fs } from '../theme/useTheme';
+import { useSettings } from '../context/SettingsContext';
 import PrimaryButton from '../components/PrimaryButton';
 
 const PREFS = [
-  { key: 'textSize', icon: 'text-outline', title: 'Text Size', subtitle: 'Adjust reading comfort' },
-  { key: 'contrast', icon: 'contrast-outline', title: 'Contrast', subtitle: 'Improve visibility' },
-  { key: 'interaction', icon: 'hand-left-outline', title: 'Interaction Mode', subtitle: 'Tap or Voice' },
-] as const;
+  {
+    key: 'largeText' as const,
+    icon: 'text-outline',
+    title: 'Text Size',
+    subtitle: 'Larger type across the whole app',
+  },
+  {
+    key: 'highContrast' as const,
+    icon: 'contrast-outline',
+    title: 'Contrast',
+    subtitle: 'Darker borders & text for visibility',
+  },
+  {
+    key: 'hapticFeedback' as const,
+    icon: 'hand-left-outline',
+    title: 'Interaction Mode',
+    subtitle: 'Haptic buzz confirms every tap',
+  },
+];
 
 export default function OnboardingScreen() {
-  const [enabled, setEnabled] = useState<Record<string, boolean>>({
-    textSize: true,
-    contrast: false,
-    interaction: false,
-  });
+  const { colors, fonts, radius, scale } = useTheme();
+  const settings = useSettings();
+  const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
 
-  const toggle = (key: string) => setEnabled((p) => ({ ...p, [key]: !p[key] }));
-  const enter = () => router.replace('/home');
+  const setters: Record<string, (v: boolean) => void> = {
+    largeText: settings.setLargeText,
+    highContrast: settings.setHighContrast,
+    hapticFeedback: settings.setHapticFeedback,
+  };
+  const values: Record<string, boolean> = {
+    largeText: settings.largeText,
+    highContrast: settings.highContrast,
+    hapticFeedback: settings.hapticFeedback,
+  };
+
+  const toggle = (key: string) => {
+    settings.tap();
+    setters[key](!values[key]);
+  };
+  const enter = () => {
+    settings.tap();
+    router.replace('/home');
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -43,7 +74,9 @@ export default function OnboardingScreen() {
         </View>
 
         <Text style={styles.title}>Let's set up CalmCart for you</Text>
-        <Text style={styles.subtitle}>A quick setup so the app works the way you need it to</Text>
+        <Text style={styles.subtitle}>
+          These change the app immediately — and you can revisit them anytime from Settings.
+        </Text>
 
         {PREFS.map((p) => (
           <Pressable key={p.key} onPress={() => toggle(p.key)} style={styles.prefCard}>
@@ -54,8 +87,8 @@ export default function OnboardingScreen() {
               <Text style={styles.prefTitle}>{p.title}</Text>
               <Text style={styles.prefSubtitle}>{p.subtitle}</Text>
             </View>
-            <View style={[styles.toggle, enabled[p.key] && styles.toggleOn]}>
-              <View style={[styles.knob, enabled[p.key] && styles.knobOn]} />
+            <View style={[styles.toggle, values[p.key] && styles.toggleOn]}>
+              <View style={[styles.knob, values[p.key] && styles.knobOn]} />
             </View>
           </Pressable>
         ))}
@@ -90,64 +123,72 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, paddingBottom: 40 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  logo: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
-  skip: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 24 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
-  dotActive: { backgroundColor: colors.dark, width: 18 },
-  hero: {
-    height: 200,
-    borderRadius: radius.lg,
-    backgroundColor: colors.imgPlaceholder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  title: { fontFamily: fonts.bold, fontSize: 24, color: colors.text, marginBottom: 8 },
-  subtitle: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, marginBottom: 24, lineHeight: 20 },
-  prefCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 12,
-    gap: 12,
-  },
-  prefIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  prefTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: colors.text },
-  prefSubtitle: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  toggle: { width: 42, height: 24, borderRadius: 12, backgroundColor: colors.border, padding: 2 },
-  toggleOn: { backgroundColor: colors.dark },
-  knob: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.white },
-  knobOn: { transform: [{ translateX: 18 }] },
-  loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18, marginBottom: 32 },
-  loginText: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
-  loginLink: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
-  whyTitle: { fontFamily: fonts.semiBold, fontSize: 16, color: colors.text, marginBottom: 14 },
-  featureRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  feature: { width: '31%', alignItems: 'flex-start' },
-  featureIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  featureTitle: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.text, marginBottom: 2 },
-  featureSub: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMuted },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: ReturnType<typeof useTheme>['radius'], fonts: ReturnType<typeof useTheme>['fonts'], scale: number) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    content: { padding: 20, paddingBottom: 40 },
+    topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    logo: { fontFamily: fonts.bold, fontSize: fs(18, scale), color: colors.text },
+    skip: { fontFamily: fonts.medium, fontSize: fs(13, scale), color: colors.textSecondary },
+    dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 24 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
+    dotActive: { backgroundColor: colors.primary, width: 18 },
+    hero: {
+      height: 200,
+      borderRadius: radius.lg,
+      backgroundColor: colors.imgPlaceholder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 24,
+    },
+    title: { fontFamily: fonts.bold, fontSize: fs(24, scale), color: colors.text, marginBottom: 8 },
+    subtitle: {
+      fontFamily: fonts.regular,
+      fontSize: fs(14, scale),
+      color: colors.textSecondary,
+      marginBottom: 24,
+      lineHeight: fs(20, scale),
+    },
+    prefCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: radius.md,
+      padding: 14,
+      marginBottom: 12,
+      gap: 12,
+    },
+    prefIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceRaised,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    prefTitle: { fontFamily: fonts.semiBold, fontSize: fs(15, scale), color: colors.text },
+    prefSubtitle: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textSecondary, marginTop: 2 },
+    toggle: { width: 42, height: 24, borderRadius: 12, backgroundColor: colors.border, padding: 2 },
+    toggleOn: { backgroundColor: colors.primary },
+    knob: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.bg },
+    knobOn: { transform: [{ translateX: 18 }] },
+    loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18, marginBottom: 32 },
+    loginText: { fontFamily: fonts.regular, fontSize: fs(13, scale), color: colors.textSecondary },
+    loginLink: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.text },
+    whyTitle: { fontFamily: fonts.semiBold, fontSize: fs(16, scale), color: colors.text, marginBottom: 14 },
+    featureRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    feature: { width: '31%', alignItems: 'flex-start' },
+    featureIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    featureTitle: { fontFamily: fonts.semiBold, fontSize: fs(12, scale), color: colors.text, marginBottom: 2 },
+    featureSub: { fontFamily: fonts.regular, fontSize: fs(10, scale), color: colors.textMuted },
+  });
+}

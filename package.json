@@ -1,13 +1,15 @@
 {
   "name": "calmcart",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "^3.1.1",
     "expo": "~57.0.27",
     "expo-constants": "^57.0.21",
     "expo-font": "^57.0.4",
+    "expo-haptics": "^57.0.3",
     "expo-linking": "^57.0.12",
     "expo-router": "^57.0.25",
     "expo-splash-screen": "^57.0.9",

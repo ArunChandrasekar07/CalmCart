@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { colors, fonts, radius } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
+import { useSettings } from '../../context/SettingsContext';
 import PrimaryButton from '../../components/PrimaryButton';
+import { useTheme, fs } from '../../theme/useTheme';
 
 export default function CartScreen() {
   const { itemsWithDetails, incrementQty, decrementQty, removeFromCart, subtotal, deliveryFee, discount, total, clearCart } =
     useCart();
+  const { tap } = useSettings();
   const [promo, setPromo] = useState('');
   const [placing, setPlacing] = useState(false);
+  const { colors, fonts, radius, scale } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
 
   const handleCheckout = () => {
+    tap();
     setPlacing(true);
     setTimeout(() => {
       setPlacing(false);
@@ -63,16 +68,35 @@ export default function CartScreen() {
               <Text style={styles.itemSub}>₹{item.product.price} each</Text>
             </View>
             <View style={styles.stepper}>
-              <Pressable onPress={() => decrementQty(item.product.id)} style={styles.stepBtn}>
+              <Pressable
+                onPress={() => {
+                  tap();
+                  decrementQty(item.product.id);
+                }}
+                style={styles.stepBtn}
+              >
                 <Text style={styles.stepSymbol}>−</Text>
               </Pressable>
               <Text style={styles.stepQty}>{item.qty}</Text>
-              <Pressable onPress={() => incrementQty(item.product.id)} style={styles.stepBtn}>
+              <Pressable
+                onPress={() => {
+                  tap();
+                  incrementQty(item.product.id);
+                }}
+                style={styles.stepBtn}
+              >
                 <Text style={styles.stepSymbol}>+</Text>
               </Pressable>
             </View>
             <Text style={styles.lineTotal}>₹{item.lineTotal}</Text>
-            <Pressable onPress={() => removeFromCart(item.product.id)} hitSlop={8} style={{ marginLeft: 8 }}>
+            <Pressable
+              onPress={() => {
+                tap();
+                removeFromCart(item.product.id);
+              }}
+              hitSlop={8}
+              style={{ marginLeft: 8 }}
+            >
               <Ionicons name="close-circle-outline" size={20} color={colors.textMuted} />
             </Pressable>
           </View>
@@ -135,78 +159,80 @@ export default function CartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text, paddingHorizontal: 20, paddingTop: 12, marginBottom: 12 },
-  list: { paddingHorizontal: 20, paddingBottom: 140 },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 10,
-    marginBottom: 12,
-  },
-  thumb: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.sm,
-    backgroundColor: colors.imgPlaceholder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemName: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
-  itemSub: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stepBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepSymbol: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.text },
-  stepQty: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text, minWidth: 16, textAlign: 'center' },
-  lineTotal: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text, marginLeft: 6 },
-  promoRow: { flexDirection: 'row', gap: 10, marginTop: 4, marginBottom: 16 },
-  promoInput: {
-    flex: 1,
-    height: 44,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: 14,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.text,
-  },
-  promoBtn: { height: 44, paddingHorizontal: 20 },
-  summaryCard: { backgroundColor: colors.card, borderRadius: radius.md, padding: 18 },
-  summaryTitle: { fontFamily: fonts.semiBold, fontSize: 16, color: colors.text, marginBottom: 12 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  summaryLabel: { fontFamily: fonts.regular, fontSize: 13, color: colors.text },
-  summaryValue: { fontFamily: fonts.medium, fontSize: 13, color: colors.text },
-  divider: { height: 1, backgroundColor: colors.divider, marginVertical: 8 },
-  totalLabel: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  totalValue: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  eta: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, marginTop: 12 },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.bg,
-    padding: 20,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
-  },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  emptyTitle: { fontFamily: fonts.semiBold, fontSize: 16, color: colors.text, marginTop: 12 },
-  emptySubtitle: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: ReturnType<typeof useTheme>['radius'], fonts: ReturnType<typeof useTheme>['fonts'], scale: number) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    title: { fontFamily: fonts.bold, fontSize: fs(22, scale), color: colors.text, paddingHorizontal: 20, paddingTop: 12, marginBottom: 12 },
+    list: { paddingHorizontal: 20, paddingBottom: 140 },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      padding: 10,
+      marginBottom: 12,
+    },
+    thumb: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.sm,
+      backgroundColor: colors.imgPlaceholder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    itemName: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.text },
+    itemSub: { fontFamily: fonts.regular, fontSize: fs(11, scale), color: colors.textSecondary, marginTop: 2 },
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    stepBtn: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepSymbol: { fontFamily: fonts.semiBold, fontSize: fs(14, scale), color: colors.text },
+    stepQty: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.text, minWidth: 16, textAlign: 'center' },
+    lineTotal: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.text, marginLeft: 6 },
+    promoRow: { flexDirection: 'row', gap: 10, marginTop: 4, marginBottom: 16 },
+    promoInput: {
+      flex: 1,
+      height: 44,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: 14,
+      fontFamily: fonts.regular,
+      fontSize: fs(13, scale),
+      color: colors.text,
+    },
+    promoBtn: { height: 44, paddingHorizontal: 20 },
+    summaryCard: { backgroundColor: colors.card, borderRadius: radius.md, padding: 18 },
+    summaryTitle: { fontFamily: fonts.semiBold, fontSize: fs(16, scale), color: colors.text, marginBottom: 12 },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    summaryLabel: { fontFamily: fonts.regular, fontSize: fs(13, scale), color: colors.text },
+    summaryValue: { fontFamily: fonts.medium, fontSize: fs(13, scale), color: colors.text },
+    divider: { height: 1, backgroundColor: colors.divider, marginVertical: 8 },
+    totalLabel: { fontFamily: fonts.bold, fontSize: fs(16, scale), color: colors.text },
+    totalValue: { fontFamily: fonts.bold, fontSize: fs(16, scale), color: colors.text },
+    eta: { fontFamily: fonts.regular, fontSize: fs(11, scale), color: colors.textMuted, marginTop: 12 },
+    footer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.bg,
+      padding: 20,
+      paddingBottom: 28,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+    },
+    emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+    emptyTitle: { fontFamily: fonts.semiBold, fontSize: fs(16, scale), color: colors.text, marginTop: 12 },
+    emptySubtitle: { fontFamily: fonts.regular, fontSize: fs(13, scale), color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
+  });
+}

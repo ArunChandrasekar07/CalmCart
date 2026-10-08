@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { colors, fonts, radius } from '../../theme/colors';
 import { getRecommendations } from '../../data/products';
 import { useCart } from '../../context/CartContext';
+import { useSettings } from '../../context/SettingsContext';
 import PrimaryButton from '../../components/PrimaryButton';
+import { useTheme, fs } from '../../theme/useTheme';
 
 const FILTERS = ['Last 5 orders', 'Frequently bought', 'Seasonal picks', 'Price drops'] as const;
 
 export default function RecommendationsScreen() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('Last 5 orders');
   const { addToCart } = useCart();
+  const { tap } = useSettings();
   const data = getRecommendations();
+  const { colors, fonts, radius, scale } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -23,7 +27,14 @@ export default function RecommendationsScreen() {
         {FILTERS.map((f) => {
           const active = f === filter;
           return (
-            <Pressable key={f} onPress={() => setFilter(f)} style={styles.filterRow}>
+            <Pressable
+              key={f}
+              onPress={() => {
+                tap();
+                setFilter(f);
+              }}
+              style={styles.filterRow}
+            >
               <View style={[styles.radio, active && styles.radioActive]}>
                 {active && <View style={styles.radioDot} />}
               </View>
@@ -56,6 +67,7 @@ export default function RecommendationsScreen() {
             <Pressable
               onPress={(e) => {
                 e.stopPropagation();
+                tap();
                 addToCart(item.id);
               }}
               style={styles.addBtn}
@@ -70,66 +82,68 @@ export default function RecommendationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text, paddingHorizontal: 20, paddingTop: 12 },
-  subtitle: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.textSecondary,
-    paddingHorizontal: 20,
-    marginTop: 4,
-  },
-  filterList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    gap: 16,
-  },
-  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  radio: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioActive: { borderColor: colors.dark },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.dark },
-  filterText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
-  filterTextActive: { fontFamily: fonts.semiBold, color: colors.text },
-  list: { padding: 20, paddingBottom: 100 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    padding: 12,
-    marginBottom: 14,
-  },
-  thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
-    backgroundColor: colors.imgPlaceholder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  name: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.text },
-  price: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  whyBtn: { height: 32, paddingHorizontal: 12 },
-  addBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.dark,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnText: { color: colors.white, fontFamily: fonts.semiBold, fontSize: 16, marginTop: -1 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: ReturnType<typeof useTheme>['radius'], fonts: ReturnType<typeof useTheme>['fonts'], scale: number) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    title: { fontFamily: fonts.bold, fontSize: fs(22, scale), color: colors.text, paddingHorizontal: 20, paddingTop: 12 },
+    subtitle: {
+      fontFamily: fonts.regular,
+      fontSize: fs(13, scale),
+      color: colors.textSecondary,
+      paddingHorizontal: 20,
+      marginTop: 4,
+    },
+    filterList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: 20,
+      marginTop: 16,
+      marginBottom: 8,
+      gap: 16,
+    },
+    filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    radio: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioActive: { borderColor: colors.primary },
+    radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+    filterText: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textSecondary },
+    filterTextActive: { fontFamily: fonts.semiBold, color: colors.text },
+    list: { padding: 20, paddingBottom: 100 },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.card,
+      borderRadius: radius.md,
+      padding: 12,
+      marginBottom: 14,
+    },
+    thumb: {
+      width: 56,
+      height: 56,
+      borderRadius: radius.sm,
+      backgroundColor: colors.imgPlaceholder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    name: { fontFamily: fonts.semiBold, fontSize: fs(14, scale), color: colors.text },
+    price: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textSecondary, marginTop: 2 },
+    whyBtn: { height: 32, paddingHorizontal: 12 },
+    addBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addBtnText: { color: colors.onPrimary, fontFamily: fonts.semiBold, fontSize: fs(16, scale), marginTop: -1 },
+  });
+}
