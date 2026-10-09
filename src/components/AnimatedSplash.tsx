@@ -10,9 +10,22 @@ import { fonts } from '../theme/colors';
 // Built with RN's built-in Animated API only (no extra native dependency),
 // so it can't affect native build time.
 const DARK_BG = '#161616';
-const NATIVE_SPLASH_LOGO_SIZE = 220; // must match app.json's imageWidth
-const RESTING_LOGO_SIZE = 104;
-const RESTING_SCALE = RESTING_LOGO_SIZE / NATIVE_SPLASH_LOGO_SIZE;
+const NATIVE_SPLASH_LOGO_WIDTH = 220; // must match app.json's imageWidth
+// splash-icon.png's own (cropped) pixel aspect ratio — width/height. Using
+// this instead of a hardcoded height means the JS box's aspect always
+// matches what "contain" actually renders, so there's no invisible
+// top/bottom padding thrown off the size math.
+const LOGO_ASPECT_RATIO = 601 / 400;
+const RESTING_LOGO_WIDTH = 104;
+const RESTING_SCALE = RESTING_LOGO_WIDTH / NATIVE_SPLASH_LOGO_WIDTH;
+const LOGO_BOX_HEIGHT = NATIVE_SPLASH_LOGO_WIDTH / LOGO_ASPECT_RATIO;
+// `transform: scale` shrinks what's drawn but NOT the element's own layout
+// box, so once shrunk there's invisible space above/below the now-smaller
+// glyph equal to half the height it gave up. Pull the wordmark up through
+// that invisible space, leaving only a small, deliberate gap beneath the
+// glyph's actual (shrunk) edge.
+const DESIRED_GAP = 14;
+const LOGO_MARGIN_BOTTOM = -((LOGO_BOX_HEIGHT * (1 - RESTING_SCALE)) / 2) + DESIRED_GAP;
 
 export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
   const logoScale = useRef(new Animated.Value(1)).current;
@@ -81,15 +94,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
-  // Fixed at the native splash's own logo size — only `transform: scale`
-  // animates, never width/height, so there's no layout reflow/jump. The
-  // box stays 220 even once scaled down to ~104 visually, so a negative
-  // margin pulls the wordmark up to sit just under the shrunk mark instead
-  // of leaving a big gap where the box's invisible top/bottom used to be.
+  // Fixed at the native splash's own logo width — only `transform: scale`
+  // animates, never width/height, so there's no layout reflow/jump. Height
+  // comes from the asset's real aspect ratio, so the box hugs the glyph
+  // with no hidden padding to throw off the shrink math.
   logo: {
-    width: NATIVE_SPLASH_LOGO_SIZE,
-    height: NATIVE_SPLASH_LOGO_SIZE,
-    marginBottom: -((NATIVE_SPLASH_LOGO_SIZE - RESTING_LOGO_SIZE) / 2) + 14,
+    width: NATIVE_SPLASH_LOGO_WIDTH,
+    height: LOGO_BOX_HEIGHT,
+    marginBottom: LOGO_MARGIN_BOTTOM,
   },
   wordmark: { fontFamily: fonts.semiBold, fontSize: 24, color: '#FFFFFF', letterSpacing: 0.5 },
 });

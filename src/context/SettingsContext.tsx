@@ -69,7 +69,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const tap = useCallback(() => {
     if (settings.hapticFeedback) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      // Medium, not Light — on a lot of Android devices' vibration motors,
+      // a "Light" impact is genuinely too subtle to notice in normal use,
+      // which reads as "haptics don't work" even though they're firing.
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
   }, [settings.hapticFeedback]);
 
