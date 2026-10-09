@@ -146,7 +146,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.9)',
+      backgroundColor: colors.overlay,
       alignItems: 'center',
       justifyContent: 'center',
     },

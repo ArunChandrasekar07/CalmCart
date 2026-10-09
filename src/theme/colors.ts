@@ -27,6 +27,10 @@ export type Colors = {
   dangerSoft: string;
   avatar: string;
   shadow: string;
+  /** Translucent circular-button fill for controls floating over an image
+   * (e.g. the back/share/bookmark buttons over a product photo) — needs to
+   * stay legible on both a light and a dark photo placeholder. */
+  overlay: string;
 };
 
 const light: Colors = {
@@ -51,6 +55,7 @@ const light: Colors = {
   dangerSoft: '#FBE9E8',
   avatar: '#D6D6D6',
   shadow: 'rgba(22,22,22,0.08)',
+  overlay: 'rgba(255,255,255,0.9)',
 };
 
 const dark: Colors = {
@@ -75,6 +80,7 @@ const dark: Colors = {
   dangerSoft: 'rgba(229,103,93,0.16)',
   avatar: '#3A3A3A',
   shadow: 'rgba(0,0,0,0.5)',
+  overlay: 'rgba(38,38,38,0.88)',
 };
 
 /** Returns the active color scheme. High contrast sharpens borders and
