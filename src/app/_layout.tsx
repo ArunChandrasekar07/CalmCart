@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,6 +15,7 @@ import {
 import { CartProvider } from '../context/CartContext';
 import { SettingsProvider, useSettings } from '../context/SettingsContext';
 import { useTheme } from '../theme/useTheme';
+import AnimatedSplash from '../components/AnimatedSplash';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -38,10 +39,16 @@ function RootReady({ onReady }: { onReady: () => void }) {
   // paint, so returning users never see a light-mode flash before dark
   // mode kicks in.
   const { ready } = useSettings();
+  const [showIntro, setShowIntro] = useState(true);
   useEffect(() => {
     if (ready) onReady();
   }, [ready, onReady]);
-  return <AppShell />;
+  return (
+    <View style={{ flex: 1 }}>
+      <AppShell />
+      {showIntro && <AnimatedSplash onFinish={() => setShowIntro(false)} />}
+    </View>
+  );
 }
 
 export default function RootLayout() {
