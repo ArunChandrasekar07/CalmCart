@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
@@ -68,10 +69,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const tap = useCallback(() => {
-    if (settings.hapticFeedback) {
-      // Medium, not Light — on a lot of Android devices' vibration motors,
-      // a "Light" impact is genuinely too subtle to notice in normal use,
-      // which reads as "haptics don't work" even though they're firing.
+    if (!settings.hapticFeedback) return;
+    if (Platform.OS === 'android') {
+      // expo-haptics' Android "impact" styles are a short VibrationEffect
+      // waveform at a deliberately low, iOS-Taptic-style amplitude
+      // (~50/255, ~43ms) — on a lot of real Android phones (especially
+      // cheaper ERM vibration motors, which have spin-up lag an effect
+      // that short never overcomes) that genuinely doesn't register as a
+      // felt vibration, even though it's firing correctly. React Native's
+      // own Vibration API drives the OS's default (device-calibrated,
+      // normally much stronger) amplitude instead, so it's actually felt.
+      Vibration.vibrate(40);
+    } else {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
   }, [settings.hapticFeedback]);

@@ -11,11 +11,13 @@ import { fonts } from '../theme/colors';
 // so it can't affect native build time.
 const DARK_BG = '#161616';
 const NATIVE_SPLASH_LOGO_WIDTH = 220; // must match app.json's imageWidth
-// splash-icon.png's own (cropped) pixel aspect ratio — width/height. Using
-// this instead of a hardcoded height means the JS box's aspect always
-// matches what "contain" actually renders, so there's no invisible
-// top/bottom padding thrown off the size math.
-const LOGO_ASPECT_RATIO = 601 / 400;
+// splash-icon.png is a SQUARE canvas with the glyph centered and padded to
+// ~42% fill (regenerated — the previous crop left only ~4% padding, which
+// is why the mark rendered oversized and got clipped by Android 12+'s
+// circular splash-icon mask, which only guarantees the inner ~55% diameter
+// is visible). Square (1:1) means width and height always match exactly,
+// so there's no aspect-ratio math to get subtly wrong.
+const LOGO_ASPECT_RATIO = 1;
 const RESTING_LOGO_WIDTH = 104;
 const RESTING_SCALE = RESTING_LOGO_WIDTH / NATIVE_SPLASH_LOGO_WIDTH;
 const LOGO_BOX_HEIGHT = NATIVE_SPLASH_LOGO_WIDTH / LOGO_ASPECT_RATIO;
