@@ -109,6 +109,8 @@ export default function HomeScreen() {
         })}
       </ScrollView>
 
+      <View style={styles.categorySpacer} />
+
       {query.length > 0 && (
         <Text style={styles.resultCount}>
           {results.length} result{results.length === 1 ? '' : 's'} for "{query}"
@@ -192,7 +194,12 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     feedBtnActive: { backgroundColor: colors.accent },
     feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
     feedBtnTextActive: { color: colors.onPrimary },
-    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16, gap: 10 },
+    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10 },
+    // A plain, fixed-height spacer rather than relying on padding alone —
+    // the chips live in their own horizontal ScrollView, and padding on
+    // its content container wasn't reading as enough separation from the
+    // product grid below it.
+    categorySpacer: { height: 18 },
     chip: {
       paddingHorizontal: 16,
       height: 34,
