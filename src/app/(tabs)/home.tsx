@@ -180,7 +180,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       height: 46,
     },
     searchInput: { flex: 1, fontFamily: fonts.regular, fontSize: fs(14, scale), color: colors.text },
-    feedRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginTop: 14 },
+    feedRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginTop: 14, marginBottom: 6 },
     feedBtn: {
       flex: 1,
       height: 40,
@@ -192,7 +192,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     feedBtnActive: { backgroundColor: colors.accent },
     feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
     feedBtnTextActive: { color: colors.onPrimary },
-    chipsRow: { paddingHorizontal: 20, paddingVertical: 16, gap: 10 },
+    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16, gap: 10 },
     chip: {
       paddingHorizontal: 16,
       height: 34,
