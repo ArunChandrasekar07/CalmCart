@@ -212,7 +212,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       paddingHorizontal: 20,
       marginBottom: 8,
     },
-    grid: { paddingHorizontal: 20, paddingBottom: 100 },
+    grid: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 100 },
     empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
     emptyTitle: { fontFamily: fonts.semiBold, fontSize: fs(16, scale), color: colors.text, marginTop: 12 },
     emptySubtitle: {
