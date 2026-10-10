@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useTheme, fs } from '../theme/useTheme';
-import { useSettings } from '../context/SettingsContext';
+import QuantityStepper from './QuantityStepper';
 
 type Props = {
   product: Product;
@@ -12,10 +11,10 @@ type Props = {
 };
 
 export default function ProductCard({ product, onPress }: Props) {
-  const { addToCart } = useCart();
+  const { itemsWithDetails, addToCart, incrementQty, decrementQty } = useCart();
   const { colors, fonts, radius, scale } = useTheme();
-  const { tap } = useSettings();
   const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
+  const qty = itemsWithDetails.find((i) => i.product.id === product.id)?.qty ?? 0;
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
@@ -31,21 +30,16 @@ export default function ProductCard({ product, onPress }: Props) {
         {product.name}
       </Text>
       <View style={styles.row}>
-        <Text style={styles.price}>
+        <Text style={styles.price} numberOfLines={1}>
           ₹{product.price}
           <Text style={styles.unit}> {product.unit}</Text>
         </Text>
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            tap();
-            addToCart(product.id);
-          }}
-          hitSlop={8}
-          style={styles.addBtn}
-        >
-          <Ionicons name="add" size={18} color={colors.onPrimary} />
-        </Pressable>
+        <QuantityStepper
+          qty={qty}
+          onAdd={() => addToCart(product.id)}
+          onIncrement={() => incrementQty(product.id)}
+          onDecrement={() => decrementQty(product.id)}
+        />
       </View>
     </Pressable>
   );
@@ -75,16 +69,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     },
     tagText: { color: colors.onPrimary, fontFamily: fonts.semiBold, fontSize: fs(10, scale) },
     name: { fontFamily: fonts.semiBold, fontSize: fs(14, scale), color: colors.text, marginBottom: 2 },
-    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    price: { fontFamily: fonts.medium, fontSize: fs(13, scale), color: colors.textSecondary },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+    price: { flexShrink: 1, fontFamily: fonts.medium, fontSize: fs(13, scale), color: colors.textSecondary },
     unit: { fontFamily: fonts.regular, fontSize: fs(11, scale), color: colors.textMuted },
-    addBtn: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
   });
 }

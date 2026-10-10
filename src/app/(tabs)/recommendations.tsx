@@ -6,13 +6,14 @@ import { getRecommendations } from '../../data/products';
 import { useCart } from '../../context/CartContext';
 import { useSettings } from '../../context/SettingsContext';
 import PrimaryButton from '../../components/PrimaryButton';
+import QuantityStepper from '../../components/QuantityStepper';
 import { useTheme, fs } from '../../theme/useTheme';
 
 const FILTERS = ['Last 5 orders', 'Frequently bought', 'Seasonal picks', 'Price drops'] as const;
 
 export default function RecommendationsScreen() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('Last 5 orders');
-  const { addToCart } = useCart();
+  const { itemsWithDetails, addToCart, incrementQty, decrementQty } = useCart();
   const { tap } = useSettings();
   const data = getRecommendations();
   const { colors, fonts, radius, scale } = useTheme();
@@ -49,34 +50,32 @@ export default function RecommendationsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/product/${item.id}`)} style={styles.card}>
-            <View style={styles.thumb}>
-              <Text style={{ fontSize: 26 }}>{item.emoji}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.price}>₹{item.price}</Text>
-            </View>
-            <PrimaryButton
-              label="Why this?"
-              variant="secondary"
-              style={styles.whyBtn}
-              onPress={() => router.push(`/product/${item.id}`)}
-            />
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                tap();
-                addToCart(item.id);
-              }}
-              style={styles.addBtn}
-              hitSlop={8}
-            >
-              <Text style={styles.addBtnText}>+</Text>
+        renderItem={({ item }) => {
+          const qty = itemsWithDetails.find((i) => i.product.id === item.id)?.qty ?? 0;
+          return (
+            <Pressable onPress={() => router.push(`/product/${item.id}`)} style={styles.card}>
+              <View style={styles.thumb}>
+                <Text style={{ fontSize: 26 }}>{item.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.price}>₹{item.price}</Text>
+              </View>
+              <PrimaryButton
+                label="Why this?"
+                variant="secondary"
+                style={styles.whyBtn}
+                onPress={() => router.push(`/product/${item.id}`)}
+              />
+              <QuantityStepper
+                qty={qty}
+                onAdd={() => addToCart(item.id)}
+                onIncrement={() => incrementQty(item.id)}
+                onDecrement={() => decrementQty(item.id)}
+              />
             </Pressable>
-          </Pressable>
-        )}
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -136,14 +135,5 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     name: { fontFamily: fonts.semiBold, fontSize: fs(14, scale), color: colors.text },
     price: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textSecondary, marginTop: 2 },
     whyBtn: { height: 32, paddingHorizontal: 12 },
-    addBtn: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    addBtnText: { color: colors.onPrimary, fontFamily: fonts.semiBold, fontSize: fs(16, scale), marginTop: -1 },
   });
 }
