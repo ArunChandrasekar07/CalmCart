@@ -2,61 +2,88 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet } from 'react-native';
 import { fonts } from '../theme/colors';
 
-// Continues straight out of the native splash screen (app.json's
-// expo-splash-screen config: dark bg, logo at 220pt wide, centered) with
-// zero jump — this renders the SAME mark at the SAME size and opacity
-// first, then smoothly shrinks it into the small logo+wordmark lockup, so
-// the two screens read as one continuous motion instead of a hard cut.
-// Built with RN's built-in Animated API only (no extra native dependency),
-// so it can't affect native build time.
+// A proper animated logo reveal — the two halves of the mark (the green
+// handle arc, the basket outline) fly in from opposite sides and snap
+// together with a little bounce, the way a Tata Play/Swiggy-calibre app
+// opens: pieces assemble into the brand mark rather than just fading one
+// static image in. Built with RN's own Animated API (no extra native
+// dependency), so it can't affect native build time.
+//
+// The native splash screen (app.json) is now JUST the background color,
+// with no logo image at all — on purpose. Any static native logo would
+// have to match this component's very first frame exactly or the handoff
+// would visibly jump (that was the whole source of the earlier splash
+// bugs). A blank background matches a blank background with zero
+// possible mismatch, and the real reveal — the part worth watching —
+// happens entirely here, the instant JS takes over.
 const DARK_BG = '#161616';
-const NATIVE_SPLASH_LOGO_WIDTH = 220; // must match app.json's imageWidth
-// splash-icon.png is a SQUARE canvas with the glyph centered and padded to
-// ~42% fill (regenerated — the previous crop left only ~4% padding, which
-// is why the mark rendered oversized and got clipped by Android 12+'s
-// circular splash-icon mask, which only guarantees the inner ~55% diameter
-// is visible). Square (1:1) means width and height always match exactly,
-// so there's no aspect-ratio math to get subtly wrong.
-const LOGO_ASPECT_RATIO = 1;
+const LOGO_BOX = 220; // square box both logo layers render into
 const RESTING_LOGO_WIDTH = 104;
-const RESTING_SCALE = RESTING_LOGO_WIDTH / NATIVE_SPLASH_LOGO_WIDTH;
-const LOGO_BOX_HEIGHT = NATIVE_SPLASH_LOGO_WIDTH / LOGO_ASPECT_RATIO;
+const RESTING_SCALE = RESTING_LOGO_WIDTH / LOGO_BOX;
 // `transform: scale` shrinks what's drawn but NOT the element's own layout
 // box, so once shrunk there's invisible space above/below the now-smaller
 // glyph equal to half the height it gave up. Pull the wordmark up through
 // that invisible space, leaving only a small, deliberate gap beneath the
 // glyph's actual (shrunk) edge.
 const DESIRED_GAP = 14;
-const LOGO_MARGIN_BOTTOM = -((LOGO_BOX_HEIGHT * (1 - RESTING_SCALE)) / 2) + DESIRED_GAP;
+const LOGO_MARGIN_BOTTOM = -((LOGO_BOX * (1 - RESTING_SCALE)) / 2) + DESIRED_GAP;
+// How far off-screen each half starts, as its own translateX.
+const TRAVEL = 130;
 
 export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
-  const logoScale = useRef(new Animated.Value(1)).current;
+  const arcX = useRef(new Animated.Value(-TRAVEL)).current;
+  const arcOpacity = useRef(new Animated.Value(0)).current;
+  const basketX = useRef(new Animated.Value(TRAVEL)).current;
+  const basketOpacity = useRef(new Animated.Value(0)).current;
+  // One value carries both the "pieces just snapped together" impact
+  // pulse and, later, the shrink into the resting logo+wordmark lockup —
+  // it's the same mark the whole time, so it's the same Animated.Value.
+  const markScale = useRef(new Animated.Value(1)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const textTranslate = useRef(new Animated.Value(8)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const shrink = Animated.timing(logoScale, {
-      toValue: RESTING_SCALE,
-      duration: 520,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
+    const flyIn = Animated.parallel([
+      Animated.spring(arcX, { toValue: 0, useNativeDriver: true, speed: 14, bounciness: 9 }),
+      Animated.timing(arcOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
+      Animated.sequence([
+        // Basket trails the arc by a beat so the two reads as "this piece,
+        // then that piece", not one simultaneous blob landing.
+        Animated.delay(70),
+        Animated.parallel([
+          Animated.spring(basketX, { toValue: 0, useNativeDriver: true, speed: 14, bounciness: 9 }),
+          Animated.timing(basketOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
+        ]),
+      ]),
+    ]);
+
+    const mergeImpact = Animated.sequence([
+      Animated.timing(markScale, { toValue: 1.1, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.timing(markScale, { toValue: 1, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    ]);
+
     const textIn = Animated.parallel([
       Animated.timing(textOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
       Animated.timing(textTranslate, { toValue: 0, duration: 360, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     ]);
 
+    const shrink = Animated.timing(markScale, {
+      toValue: RESTING_SCALE,
+      duration: 480,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+
     const sequence = Animated.sequence([
-      // Brief beat at full (native-splash-matching) size before the motion
-      // starts, so the handoff reads as a continuation, not a restart.
-      Animated.delay(90),
-      Animated.parallel([
-        shrink,
-        // Wordmark starts fading in while the logo is still mid-shrink —
-        // slight overlap feels like one connected motion, not two steps.
-        Animated.sequence([Animated.delay(220), textIn]),
-      ]),
+      // A brief beat on the blank background before anything appears — an
+      // instant jump-cut right as JS mounts would read as a glitch, not a
+      // reveal.
+      Animated.delay(120),
+      flyIn,
+      mergeImpact,
+      Animated.delay(60),
+      Animated.parallel([shrink, Animated.sequence([Animated.delay(200), textIn])]),
       Animated.delay(420),
       Animated.timing(screenOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
     ]);
@@ -70,11 +97,18 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
 
   return (
     <Animated.View style={[styles.container, { opacity: screenOpacity }]} pointerEvents="none">
-      <Animated.Image
-        source={require('../../assets/splash-icon.png')}
-        style={[styles.logo, { transform: [{ scale: logoScale }] }]}
-        resizeMode="contain"
-      />
+      <Animated.View style={[styles.logoWrap, { transform: [{ scale: markScale }] }]}>
+        <Animated.Image
+          source={require('../../assets/splash-basket.png')}
+          style={[styles.layer, { opacity: basketOpacity, transform: [{ translateX: basketX }] }]}
+          resizeMode="contain"
+        />
+        <Animated.Image
+          source={require('../../assets/splash-arc.png')}
+          style={[styles.layer, { opacity: arcOpacity, transform: [{ translateX: arcX }] }]}
+          resizeMode="contain"
+        />
+      </Animated.View>
       <Animated.Text
         style={[styles.wordmark, { opacity: textOpacity, transform: [{ translateY: textTranslate }] }]}
       >
@@ -96,14 +130,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
-  // Fixed at the native splash's own logo width — only `transform: scale`
-  // animates, never width/height, so there's no layout reflow/jump. Height
-  // comes from the asset's real aspect ratio, so the box hugs the glyph
-  // with no hidden padding to throw off the shrink math.
-  logo: {
-    width: NATIVE_SPLASH_LOGO_WIDTH,
-    height: LOGO_BOX_HEIGHT,
+  logoWrap: {
+    width: LOGO_BOX,
+    height: LOGO_BOX,
     marginBottom: LOGO_MARGIN_BOTTOM,
+  },
+  // Both halves stack in the exact same box so their resting positions
+  // line up pixel-for-pixel into the one complete mark — they were split
+  // from that single final image, so there's nothing to misalign.
+  layer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   wordmark: { fontFamily: fonts.semiBold, fontSize: 24, color: '#FFFFFF', letterSpacing: 0.5 },
 });

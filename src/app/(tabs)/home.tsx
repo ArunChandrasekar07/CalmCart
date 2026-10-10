@@ -3,18 +3,40 @@ import { View, Text, TextInput, StyleSheet, FlatList, Pressable, ScrollView } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { CATEGORIES, Category, searchProducts } from '../../data/products';
+import { CATEGORIES, Category, Product, searchProducts } from '../../data/products';
 import ProductCard from '../../components/ProductCard';
 import PrimaryButton from '../../components/PrimaryButton';
+import { useSettings } from '../../context/SettingsContext';
 import { useTheme, fs } from '../../theme/useTheme';
+
+type FeedMode = 'your' | 'generic';
+
+// "Your Feed" reorders the same catalog toward what looks personalized —
+// tagged picks (Frequently bought, Price drop, ...) and High Confidence
+// matches first — the way a real grocery app's home feed would rank
+// around your habits. "Generic Feed" is the plain, unranked catalog.
+// It's a re-sort, not a filter: switching back and forth never hides
+// anything, it only reorders what's already there.
+function personalizedRank(p: Product) {
+  if (p.tag) return 0;
+  if (p.confidence === 'High Confidence') return 1;
+  if (p.confidence === 'Good Match') return 2;
+  return 3;
+}
 
 export default function HomeScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Category | 'All'>('All');
+  const [feed, setFeed] = useState<FeedMode>('your');
+  const { tap } = useSettings();
   const { colors, fonts, radius, scale } = useTheme();
   const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
 
-  const results = useMemo(() => searchProducts(query, category), [query, category]);
+  const results = useMemo(() => {
+    const base = searchProducts(query, category);
+    if (feed === 'generic') return base;
+    return [...base].sort((a, b) => personalizedRank(a) - personalizedRank(b));
+  }, [query, category, feed]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -43,6 +65,29 @@ export default function HomeScreen() {
             <Ionicons name="close-circle" size={18} color={colors.textMuted} />
           </Pressable>
         )}
+      </View>
+
+      <View style={styles.feedRow}>
+        {(
+          [
+            { key: 'your', label: 'Your Feed' },
+            { key: 'generic', label: 'Generic Feed' },
+          ] as const
+        ).map((f) => {
+          const active = feed === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => {
+                tap();
+                setFeed(f.key);
+              }}
+              style={[styles.feedBtn, active && styles.feedBtnActive]}
+            >
+              <Text style={[styles.feedBtnText, active && styles.feedBtnTextActive]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <ScrollView
@@ -135,6 +180,18 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       height: 46,
     },
     searchInput: { flex: 1, fontFamily: fonts.regular, fontSize: fs(14, scale), color: colors.text },
+    feedRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginTop: 14 },
+    feedBtn: {
+      flex: 1,
+      height: 40,
+      borderRadius: radius.pill,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    feedBtnActive: { backgroundColor: colors.accent },
+    feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
+    feedBtnTextActive: { color: colors.onPrimary },
     chipsRow: { paddingHorizontal: 20, paddingVertical: 16, gap: 10 },
     chip: {
       paddingHorizontal: 16,
