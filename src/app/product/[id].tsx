@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,16 +7,21 @@ import { getProduct, PRODUCTS } from '../../data/products';
 import { useCart } from '../../context/CartContext';
 import { useSettings } from '../../context/SettingsContext';
 import PrimaryButton from '../../components/PrimaryButton';
+import QuantityStepper from '../../components/QuantityStepper';
 import { useTheme, fs } from '../../theme/useTheme';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = getProduct(id);
-  const { addToCart, itemsWithDetails } = useCart();
+  const { addToCart, incrementQty, decrementQty, itemsWithDetails, itemCount, total } = useCart();
   const { tap } = useSettings();
-  const existingQty = itemsWithDetails.find((i) => i.product.id === id)?.qty ?? 0;
-  const [qty, setQty] = useState(1);
-  const [justAdded, setJustAdded] = useState(false);
+  // The stepper below IS the cart line for this product — there's no
+  // separate "how many to add" number anymore. That second number was the
+  // bug: picking a quantity here only ever added on top of whatever was
+  // already in the cart (and reset to 1 every time you reopened the page),
+  // so the product page and the cart could drift out of sync with each
+  // other. Now there's exactly one number, shared everywhere.
+  const qty = itemsWithDetails.find((i) => i.product.id === id)?.qty ?? 0;
   const { colors, fonts, radius, scale } = useTheme();
   const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
 
@@ -29,13 +34,6 @@ export default function ProductDetailScreen() {
   }
 
   const related = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
-
-  const handleAdd = () => {
-    tap();
-    addToCart(product.id, qty);
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 1500);
-  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -70,26 +68,13 @@ export default function ProductDetailScreen() {
           </View>
 
           <View style={styles.stepperRow}>
-            <Pressable
-              onPress={() => {
-                tap();
-                setQty((q) => Math.max(1, q - 1));
-              }}
-              style={styles.stepperBtn}
-            >
-              <Text style={styles.stepperSymbol}>−</Text>
-            </Pressable>
-            <Text style={styles.qtyText}>{qty}</Text>
-            <Pressable
-              onPress={() => {
-                tap();
-                setQty((q) => q + 1);
-              }}
-              style={styles.stepperBtn}
-            >
-              <Text style={styles.stepperSymbol}>+</Text>
-            </Pressable>
-            {existingQty > 0 && <Text style={styles.inCart}>{existingQty} already in cart</Text>}
+            <QuantityStepper
+              qty={qty}
+              onAdd={() => addToCart(product.id)}
+              onIncrement={() => incrementQty(product.id)}
+              onDecrement={() => decrementQty(product.id)}
+            />
+            {qty > 0 && <Text style={styles.inCart}>in your cart</Text>}
           </View>
 
           <Text style={styles.description}>{product.description}</Text>
@@ -119,8 +104,15 @@ export default function ProductDetailScreen() {
 
       <View style={styles.footer}>
         <PrimaryButton
-          label={justAdded ? 'Added to Cart ✓' : `Add to Cart — ₹${product.price * qty}`}
-          onPress={handleAdd}
+          label={qty === 0 ? `Add to Cart — ₹${product.price}` : `Go to Cart — ${itemCount} item${itemCount === 1 ? '' : 's'} · ₹${total}`}
+          onPress={() => {
+            if (qty === 0) {
+              tap();
+              addToCart(product.id);
+            } else {
+              router.push('/cart');
+            }
+          }}
           haptics={false}
         />
       </View>
@@ -172,19 +164,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       marginTop: 16,
     },
     badgeText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.accent },
-    stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
-    stepperBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    stepperSymbol: { fontSize: fs(18, scale), fontFamily: fonts.semiBold, color: colors.text },
-    qtyText: { fontFamily: fonts.semiBold, fontSize: fs(18, scale), color: colors.text, minWidth: 20, textAlign: 'center' },
-    inCart: { marginLeft: 'auto', fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textMuted },
+    stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
+    inCart: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textMuted },
     description: {
       fontFamily: fonts.regular,
       fontSize: fs(14, scale),
