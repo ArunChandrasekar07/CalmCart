@@ -8,6 +8,7 @@ import ProductCard from '../../components/ProductCard';
 import PrimaryButton from '../../components/PrimaryButton';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme, fs } from '../../theme/useTheme';
+import { BUILD_ID } from '../../buildInfo';
 
 type FeedMode = 'your' | 'generic';
 
@@ -44,6 +45,7 @@ export default function HomeScreen() {
         <View>
           <Text style={styles.greeting}>Hi, Arun</Text>
           <Text style={styles.subGreeting}>What do you need today?</Text>
+          <Text style={styles.buildTag}>build {BUILD_ID}</Text>
         </View>
         <Pressable onPress={() => router.push('/settings')} style={styles.avatar}>
           <Text style={styles.avatarText}>AR</Text>
@@ -93,6 +95,7 @@ export default function HomeScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipsScroll}
         contentContainerStyle={styles.chipsRow}
       >
         {(['All', ...CATEGORIES] as const).map((c) => {
@@ -162,6 +165,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     },
     greeting: { fontFamily: fonts.bold, fontSize: fs(20, scale), color: colors.text },
     subGreeting: { fontFamily: fonts.regular, fontSize: fs(13, scale), color: colors.textSecondary, marginTop: 2 },
+    buildTag: { fontFamily: fonts.regular, fontSize: fs(9, scale), color: colors.textMuted, marginTop: 2, opacity: 0.6 },
     avatar: {
       width: 42,
       height: 42,
@@ -194,12 +198,17 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     feedBtnActive: { backgroundColor: colors.accent },
     feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
     feedBtnTextActive: { color: colors.onPrimary },
-    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10 },
+    // Fixed height on the ScrollView itself (not just its content
+    // container) so the chip row always reserves this much space in the
+    // column layout from the very first layout pass, instead of sizing to
+    // content and potentially settling a frame late.
+    chipsScroll: { height: 76, flexGrow: 0 },
+    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10, alignItems: 'center' },
     // A plain, fixed-height spacer rather than relying on padding alone —
     // the chips live in their own horizontal ScrollView, and padding on
     // its content container wasn't reading as enough separation from the
     // product grid below it.
-    categorySpacer: { height: 18 },
+    categorySpacer: { height: 24 },
     chip: {
       paddingHorizontal: 16,
       height: 34,

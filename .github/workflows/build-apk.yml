@@ -34,6 +34,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Stamp build with the commit it was built from
+        # Lets a running app report exactly which build it is, so a bug
+        # report can be checked against the actual commit instead of
+        # assumed to be the latest one.
+        run: echo "export const BUILD_ID = '${GITHUB_SHA::7}';" > src/buildInfo.ts
+
       - name: Generate native Android project (Continuous Native Generation)
         run: npx expo prebuild --platform android --no-install
         env:
