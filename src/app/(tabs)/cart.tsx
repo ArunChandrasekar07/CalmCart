@@ -53,7 +53,7 @@ export default function CartScreen() {
       <Text style={styles.title}>Your Cart</Text>
       <FlatList
         data={itemsWithDetails}
-        keyExtractor={(item) => item.product.id}
+        keyExtractor={(item) => `${item.product.id}:${item.variantId ?? 'default'}`}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
@@ -63,15 +63,19 @@ export default function CartScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName}>
-                {item.product.name} — Qty {item.qty}
+                {item.product.name}
+                {item.variantLabel ? ` — ${item.variantLabel}` : ''}
               </Text>
-              <Text style={styles.itemSub}>₹{item.product.price} each</Text>
+              <View style={styles.itemSubRow}>
+                <Text style={styles.itemSub}>₹{item.unitPrice} each</Text>
+                {item.unitMrp && <Text style={styles.itemMrp}>₹{item.unitMrp}</Text>}
+              </View>
             </View>
             <View style={styles.stepper}>
               <Pressable
                 onPress={() => {
                   tap();
-                  decrementQty(item.product.id);
+                  decrementQty(item.product.id, item.variantId);
                 }}
                 style={styles.stepBtn}
               >
@@ -81,7 +85,7 @@ export default function CartScreen() {
               <Pressable
                 onPress={() => {
                   tap();
-                  incrementQty(item.product.id);
+                  incrementQty(item.product.id, item.variantId);
                 }}
                 style={styles.stepBtn}
               >
@@ -92,7 +96,7 @@ export default function CartScreen() {
             <Pressable
               onPress={() => {
                 tap();
-                removeFromCart(item.product.id);
+                removeFromCart(item.product.id, item.variantId);
               }}
               hitSlop={8}
               style={{ marginLeft: 8 }}
@@ -184,7 +188,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       justifyContent: 'center',
     },
     itemName: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.text },
-    itemSub: { fontFamily: fonts.regular, fontSize: fs(11, scale), color: colors.textSecondary, marginTop: 2 },
+    itemSubRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
+    itemSub: { fontFamily: fonts.regular, fontSize: fs(11, scale), color: colors.textSecondary },
+    itemMrp: { fontFamily: fonts.regular, fontSize: fs(10, scale), color: colors.textMuted, textDecorationLine: 'line-through' },
     stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     stepBtn: {
       width: 26,

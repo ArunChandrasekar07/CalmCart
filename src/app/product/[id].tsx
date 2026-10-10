@@ -3,25 +3,29 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { getProduct, PRODUCTS } from '../../data/products';
+import { getProduct, PRODUCTS, startingPrice } from '../../data/products';
 import { useCart } from '../../context/CartContext';
 import { useSettings } from '../../context/SettingsContext';
 import PrimaryButton from '../../components/PrimaryButton';
 import QuantityStepper from '../../components/QuantityStepper';
+import VariantRow, { bestDeal } from '../../components/VariantRow';
 import { useTheme, fs } from '../../theme/useTheme';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = getProduct(id);
-  const { addToCart, incrementQty, decrementQty, itemsWithDetails, itemCount, total } = useCart();
+  const { addToCart, incrementQty, decrementQty, qtyOf, totalQtyOf, itemCount, total } = useCart();
   const { tap } = useSettings();
+  const hasVariants = !!product?.variants?.length;
   // The stepper below IS the cart line for this product — there's no
   // separate "how many to add" number anymore. That second number was the
   // bug: picking a quantity here only ever added on top of whatever was
   // already in the cart (and reset to 1 every time you reopened the page),
   // so the product page and the cart could drift out of sync with each
-  // other. Now there's exactly one number, shared everywhere.
-  const qty = itemsWithDetails.find((i) => i.product.id === id)?.qty ?? 0;
+  // other. Now there's exactly one number, shared everywhere. For a
+  // variant product there's no single quantity — each pack size is its
+  // own line — so the footer button instead looks at the combined total.
+  const qty = product ? (hasVariants ? totalQtyOf(product.id) : qtyOf(product.id)) : 0;
   const { colors, fonts, radius, scale } = useTheme();
   const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
 
@@ -59,7 +63,8 @@ export default function ProductDetailScreen() {
         <View style={styles.content}>
           <Text style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>
-            ₹{product.price} <Text style={styles.unit}>{product.unit}</Text>
+            {hasVariants ? `From ₹${startingPrice(product)}` : `₹${product.price} `}
+            {!hasVariants && <Text style={styles.unit}>{product.unit}</Text>}
           </Text>
 
           <View style={styles.badge}>
@@ -67,15 +72,24 @@ export default function ProductDetailScreen() {
             <Ionicons name="checkmark-circle-outline" size={16} color={colors.accent} />
           </View>
 
-          <View style={styles.stepperRow}>
-            <QuantityStepper
-              qty={qty}
-              onAdd={() => addToCart(product.id)}
-              onIncrement={() => incrementQty(product.id)}
-              onDecrement={() => decrementQty(product.id)}
-            />
-            {qty > 0 && <Text style={styles.inCart}>in your cart</Text>}
-          </View>
+          {hasVariants ? (
+            <View style={styles.variantSection}>
+              <Text style={styles.variantSectionTitle}>Select a pack size</Text>
+              {product.variants!.map((v) => (
+                <VariantRow key={v.id} product={product} variant={v} highlighted={v.id === bestDeal(product.variants)} />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.stepperRow}>
+              <QuantityStepper
+                qty={qty}
+                onAdd={() => addToCart(product.id)}
+                onIncrement={() => incrementQty(product.id)}
+                onDecrement={() => decrementQty(product.id)}
+              />
+              {qty > 0 && <Text style={styles.inCart}>in your cart</Text>}
+            </View>
+          )}
 
           <Text style={styles.description}>{product.description}</Text>
 
@@ -104,9 +118,17 @@ export default function ProductDetailScreen() {
 
       <View style={styles.footer}>
         <PrimaryButton
-          label={qty === 0 ? `Add to Cart — ₹${product.price}` : `Go to Cart — ${itemCount} item${itemCount === 1 ? '' : 's'} · ₹${total}`}
+          label={
+            qty === 0
+              ? hasVariants
+                ? 'Select a pack size above'
+                : `Add to Cart — ₹${product.price}`
+              : `Go to Cart — ${itemCount} item${itemCount === 1 ? '' : 's'} · ₹${total}`
+          }
+          disabled={qty === 0 && hasVariants}
           onPress={() => {
             if (qty === 0) {
+              if (hasVariants) return;
               tap();
               addToCart(product.id);
             } else {
@@ -165,6 +187,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     },
     badgeText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.accent },
     stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
+    variantSection: { marginTop: 20 },
+    variantSectionTitle: { fontFamily: fonts.semiBold, fontSize: fs(14, scale), color: colors.text, marginBottom: 10 },
     inCart: { fontFamily: fonts.regular, fontSize: fs(12, scale), color: colors.textMuted },
     description: {
       fontFamily: fonts.regular,

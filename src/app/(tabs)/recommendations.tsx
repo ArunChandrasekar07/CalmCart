@@ -2,22 +2,24 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { getRecommendations } from '../../data/products';
+import { getRecommendations, startingPrice, Product } from '../../data/products';
 import { useCart } from '../../context/CartContext';
 import { useSettings } from '../../context/SettingsContext';
 import PrimaryButton from '../../components/PrimaryButton';
-import QuantityStepper from '../../components/QuantityStepper';
+import QuantityStepper, { PackPickerButton } from '../../components/QuantityStepper';
+import VariantPickerModal from '../../components/VariantPickerModal';
 import { useTheme, fs } from '../../theme/useTheme';
 
 const FILTERS = ['Last 5 orders', 'Frequently bought', 'Seasonal picks', 'Price drops'] as const;
 
 export default function RecommendationsScreen() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('Last 5 orders');
-  const { itemsWithDetails, addToCart, incrementQty, decrementQty } = useCart();
+  const { addToCart, incrementQty, decrementQty, qtyOf, totalQtyOf } = useCart();
   const { tap } = useSettings();
   const data = getRecommendations();
   const { colors, fonts, radius, scale } = useTheme();
   const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
+  const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -51,7 +53,7 @@ export default function RecommendationsScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
-          const qty = itemsWithDetails.find((i) => i.product.id === item.id)?.qty ?? 0;
+          const hasVariants = !!item.variants?.length;
           return (
             <Pressable onPress={() => router.push(`/product/${item.id}`)} style={styles.card}>
               <View style={styles.thumb}>
@@ -59,7 +61,7 @@ export default function RecommendationsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.price}>₹{item.price}</Text>
+                <Text style={styles.price}>{hasVariants ? `From ₹${startingPrice(item)}` : `₹${item.price}`}</Text>
               </View>
               <PrimaryButton
                 label="Why this?"
@@ -67,16 +69,21 @@ export default function RecommendationsScreen() {
                 style={styles.whyBtn}
                 onPress={() => router.push(`/product/${item.id}`)}
               />
-              <QuantityStepper
-                qty={qty}
-                onAdd={() => addToCart(item.id)}
-                onIncrement={() => incrementQty(item.id)}
-                onDecrement={() => decrementQty(item.id)}
-              />
+              {hasVariants ? (
+                <PackPickerButton qty={totalQtyOf(item.id)} onPress={() => setPickerProduct(item)} />
+              ) : (
+                <QuantityStepper
+                  qty={qtyOf(item.id)}
+                  onAdd={() => addToCart(item.id)}
+                  onIncrement={() => incrementQty(item.id)}
+                  onDecrement={() => decrementQty(item.id)}
+                />
+              )}
             </Pressable>
           );
         }}
       />
+      <VariantPickerModal product={pickerProduct} visible={!!pickerProduct} onClose={() => setPickerProduct(null)} />
     </SafeAreaView>
   );
 }

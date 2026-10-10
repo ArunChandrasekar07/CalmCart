@@ -2,27 +2,49 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PRODUCTS, Product } from '../data/products';
 
-type CartLine = { productId: string; qty: number };
+// A cart line is keyed by product + which pack size was chosen (undefined
+// variantId = the product has no pack sizes, or none was picked). "500 ml"
+// and "1 L" of the same oat milk are deliberately two different lines —
+// they're different prices and different physical items.
+type CartLine = { productId: string; variantId?: string; qty: number };
+
+type CartItemDetails = {
+  product: Product;
+  variantId?: string;
+  variantLabel?: string;
+  qty: number;
+  unitPrice: number;
+  unitMrp?: number;
+  lineTotal: number;
+};
 
 type CartContextValue = {
   lines: CartLine[];
-  addToCart: (productId: string, qty?: number) => void;
-  removeFromCart: (productId: string) => void;
-  incrementQty: (productId: string) => void;
-  decrementQty: (productId: string) => void;
+  addToCart: (productId: string, variantId?: string, qty?: number) => void;
+  removeFromCart: (productId: string, variantId?: string) => void;
+  incrementQty: (productId: string, variantId?: string) => void;
+  decrementQty: (productId: string, variantId?: string) => void;
   clearCart: () => void;
+  /** Quantity of one exact product+variant line (what a stepper shows). */
+  qtyOf: (productId: string, variantId?: string) => number;
+  /** Total quantity across every pack size of a product (what a card's
+   * "N in cart" badge shows when the product has several variants). */
+  totalQtyOf: (productId: string) => number;
   itemCount: number;
   subtotal: number;
   deliveryFee: number;
   discount: number;
   total: number;
-  itemsWithDetails: Array<{ product: Product; qty: number; lineTotal: number }>;
+  itemsWithDetails: CartItemDetails[];
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 const DELIVERY_FEE = 20;
-const STORAGE_KEY = '@calmcart/cart/v1';
+const STORAGE_KEY = '@calmcart/cart/v2';
+
+const sameLine = (l: CartLine, productId: string, variantId?: string) =>
+  l.productId === productId && l.variantId === variantId;
 
 export function CartProvider({ children }: PropsWithChildren) {
   // Starts empty — no demo items. Real apps don't open with someone else's
@@ -54,43 +76,61 @@ export function CartProvider({ children }: PropsWithChildren) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(lines)).catch(() => {});
   }, [lines]);
 
-  const addToCart = (productId: string, qty: number = 1) => {
+  const addToCart = (productId: string, variantId?: string, qty: number = 1) => {
     setLines((prev) => {
-      const existing = prev.find((l) => l.productId === productId);
+      const existing = prev.find((l) => sameLine(l, productId, variantId));
       if (existing) {
-        return prev.map((l) => (l.productId === productId ? { ...l, qty: l.qty + qty } : l));
+        return prev.map((l) => (sameLine(l, productId, variantId) ? { ...l, qty: l.qty + qty } : l));
       }
-      return [...prev, { productId, qty }];
+      return [...prev, { productId, variantId, qty }];
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setLines((prev) => prev.filter((l) => l.productId !== productId));
+  const removeFromCart = (productId: string, variantId?: string) => {
+    setLines((prev) => prev.filter((l) => !sameLine(l, productId, variantId)));
   };
 
-  const incrementQty = (productId: string) => {
-    setLines((prev) => prev.map((l) => (l.productId === productId ? { ...l, qty: l.qty + 1 } : l)));
+  const incrementQty = (productId: string, variantId?: string) => {
+    setLines((prev) =>
+      prev.map((l) => (sameLine(l, productId, variantId) ? { ...l, qty: l.qty + 1 } : l))
+    );
   };
 
-  const decrementQty = (productId: string) => {
+  const decrementQty = (productId: string, variantId?: string) => {
     setLines((prev) =>
       prev
-        .map((l) => (l.productId === productId ? { ...l, qty: l.qty - 1 } : l))
+        .map((l) => (sameLine(l, productId, variantId) ? { ...l, qty: l.qty - 1 } : l))
         .filter((l) => l.qty > 0)
     );
   };
 
   const clearCart = () => setLines([]);
 
+  const qtyOf = (productId: string, variantId?: string) =>
+    lines.find((l) => sameLine(l, productId, variantId))?.qty ?? 0;
+
+  const totalQtyOf = (productId: string) =>
+    lines.filter((l) => l.productId === productId).reduce((sum, l) => sum + l.qty, 0);
+
   const itemsWithDetails = useMemo(
     () =>
       lines
-        .map((l) => {
+        .map((l): CartItemDetails | null => {
           const product = PRODUCTS.find((p) => p.id === l.productId);
           if (!product) return null;
-          return { product, qty: l.qty, lineTotal: product.price * l.qty };
+          const variant = l.variantId ? product.variants?.find((v) => v.id === l.variantId) : undefined;
+          const unitPrice = variant?.price ?? product.price;
+          return {
+            product,
+            variantId: l.variantId,
+            variantLabel: variant?.label,
+            qty: l.qty,
+            unitPrice,
+            unitMrp: variant?.mrp,
+            lineTotal: unitPrice * l.qty,
+          };
         })
-        .filter((x): x is { product: Product; qty: number; lineTotal: number } => x !== null),
+        .filter((x): x is CartItemDetails => x !== null),
     [lines]
   );
 
@@ -107,6 +147,8 @@ export function CartProvider({ children }: PropsWithChildren) {
     incrementQty,
     decrementQty,
     clearCart,
+    qtyOf,
+    totalQtyOf,
     itemCount,
     subtotal,
     deliveryFee,

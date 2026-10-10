@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Product } from '../data/products';
+import { Product, startingPrice } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useTheme, fs } from '../theme/useTheme';
-import QuantityStepper from './QuantityStepper';
+import QuantityStepper, { PackPickerButton } from './QuantityStepper';
+import VariantPickerModal from './VariantPickerModal';
 
 type Props = {
   product: Product;
@@ -11,37 +12,47 @@ type Props = {
 };
 
 export default function ProductCard({ product, onPress }: Props) {
-  const { itemsWithDetails, addToCart, incrementQty, decrementQty } = useCart();
+  const { addToCart, incrementQty, decrementQty, qtyOf, totalQtyOf } = useCart();
   const { colors, fonts, radius, scale } = useTheme();
   const styles = useMemo(() => makeStyles(colors, radius, fonts, scale), [colors, radius, fonts, scale]);
-  const qty = itemsWithDetails.find((i) => i.product.id === product.id)?.qty ?? 0;
+  const hasVariants = !!product.variants?.length;
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
-      <View style={styles.imageBox}>
-        <Text style={styles.emoji}>{product.emoji}</Text>
-        {product.tag && (
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>{product.tag}</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.name} numberOfLines={1}>
-        {product.name}
-      </Text>
-      <View style={styles.row}>
-        <Text style={styles.price} numberOfLines={1}>
-          ₹{product.price}
-          <Text style={styles.unit}> {product.unit}</Text>
+    <>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
+        <View style={styles.imageBox}>
+          <Text style={styles.emoji}>{product.emoji}</Text>
+          {product.tag && (
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>{product.tag}</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.name} numberOfLines={1}>
+          {product.name}
         </Text>
-        <QuantityStepper
-          qty={qty}
-          onAdd={() => addToCart(product.id)}
-          onIncrement={() => incrementQty(product.id)}
-          onDecrement={() => decrementQty(product.id)}
-        />
-      </View>
-    </Pressable>
+        <View style={styles.row}>
+          <Text style={styles.price} numberOfLines={1}>
+            {hasVariants ? `From ₹${startingPrice(product)}` : `₹${product.price}`}
+            {!hasVariants && <Text style={styles.unit}> {product.unit}</Text>}
+          </Text>
+          {hasVariants ? (
+            <PackPickerButton qty={totalQtyOf(product.id)} onPress={() => setPickerOpen(true)} />
+          ) : (
+            <QuantityStepper
+              qty={qtyOf(product.id)}
+              onAdd={() => addToCart(product.id)}
+              onIncrement={() => incrementQty(product.id)}
+              onDecrement={() => decrementQty(product.id)}
+            />
+          )}
+        </View>
+      </Pressable>
+      {hasVariants && (
+        <VariantPickerModal product={product} visible={pickerOpen} onClose={() => setPickerOpen(false)} />
+      )}
+    </>
   );
 }
 

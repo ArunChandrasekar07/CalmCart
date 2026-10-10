@@ -81,6 +81,41 @@ export default function QuantityStepper({ qty, onAdd, onIncrement, onDecrement }
   );
 }
 
+// Same pill, but for a product sold in multiple pack sizes — there's no
+// single quantity to step through here (each size is its own cart line),
+// so the whole pill just opens the pack-size picker instead. Shows "ADD"
+// at 0, or the combined quantity across every size once something's in
+// the cart, exactly like Swiggy/Instamart's variant cards.
+export function PackPickerButton({ qty, onPress }: { qty: number; onPress: () => void }) {
+  const { colors, fonts, radius, scale } = useTheme();
+  const { tap } = useSettings();
+  const styles = useMemoStyles(colors, radius, fonts, scale);
+
+  return (
+    <Pressable
+      onPress={(e) => {
+        e.stopPropagation();
+        tap();
+        onPress();
+      }}
+      hitSlop={8}
+      style={({ pressed }) => [qty === 0 ? styles.addPill : styles.pickerPill, pressed && { opacity: 0.85 }]}
+    >
+      {qty === 0 ? (
+        <>
+          <Ionicons name="add" size={15} color={colors.onPrimary} />
+          <Text style={styles.addText}>ADD</Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.addText}>{qty}</Text>
+          <Ionicons name="chevron-down" size={12} color={colors.onPrimary} />
+        </>
+      )}
+    </Pressable>
+  );
+}
+
 function useMemoStyles(
   colors: ReturnType<typeof useTheme>['colors'],
   radius: ReturnType<typeof useTheme>['radius'],
@@ -119,6 +154,15 @@ function useMemoStyles(
       color: colors.onPrimary,
       fontFamily: fonts.semiBold,
       fontSize: fs(13, scale),
+    },
+    pickerPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      height: 30,
+      paddingHorizontal: 10,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primary,
     },
   });
 }
