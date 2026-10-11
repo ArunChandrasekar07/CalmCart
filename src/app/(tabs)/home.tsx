@@ -92,25 +92,32 @@ export default function HomeScreen() {
         })}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipsScroll}
-        contentContainerStyle={styles.chipsRow}
-      >
-        {(['All', ...CATEGORIES] as const).map((c) => {
-          const active = category === c;
-          return (
-            <Pressable
-              key={c}
-              onPress={() => setCategory(c)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {/* A plain, non-scrolling View owns the fixed height here — a
+          *horizontal* ScrollView sizing itself from its own style.height
+          is the known-flaky part on Android (first paint can race the
+          layout pass and clip content); a plain View's height from style
+          doesn't have that race, and the ScrollView just fills it. */}
+      <View style={styles.chipsWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipsScroll}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {(['All', ...CATEGORIES] as const).map((c) => {
+            const active = category === c;
+            return (
+              <Pressable
+                key={c}
+                onPress={() => setCategory(c)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <View style={styles.categorySpacer} />
 
@@ -198,17 +205,11 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     feedBtnActive: { backgroundColor: colors.accent },
     feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
     feedBtnTextActive: { color: colors.onPrimary },
-    // A *horizontal* ScrollView doesn't reliably self-size its own height
-    // to its content on Android — with no explicit height it can
-    // mis-measure (too short, or collapsed) on the very first layout
-    // pass and clip the top of its content, correcting itself only after
-    // a later re-render. The earlier fixed height (76) avoided that but
-    // was taller than the actual content (22 + 34 + 10 = 66), so the
-    // "no explicit height" first paint and the "explicit height" later
-    // paints disagreed on spacing. Setting the height to exactly match
-    // the content removes the mismatch in both directions — nothing to
-    // mis-measure, nothing to settle later.
-    chipsScroll: { height: 66 },
+    // The fixed height now lives on the plain View wrapper (chipsWrap)
+    // instead of on the ScrollView itself — see the comment at its usage
+    // site. The ScrollView just stretches to fill that wrapper.
+    chipsWrap: { height: 66 },
+    chipsScroll: { flex: 1 },
     chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10 },
     // A plain, fixed-height spacer rather than relying on padding alone —
     // the chips live in their own horizontal ScrollView, and padding on
