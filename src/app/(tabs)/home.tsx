@@ -95,7 +95,6 @@ export default function HomeScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.chipsScroll}
         contentContainerStyle={styles.chipsRow}
       >
         {(['All', ...CATEGORIES] as const).map((c) => {
@@ -198,12 +197,13 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     feedBtnActive: { backgroundColor: colors.accent },
     feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
     feedBtnTextActive: { color: colors.onPrimary },
-    // Fixed height on the ScrollView itself (not just its content
-    // container) so the chip row always reserves this much space in the
-    // column layout from the very first layout pass, instead of sizing to
-    // content and potentially settling a frame late.
-    chipsScroll: { height: 76, flexGrow: 0 },
-    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10, alignItems: 'center' },
+    // Deliberately NO explicit height on the ScrollView itself — on
+    // Android that style isn't always reserved on the very first layout
+    // pass, which is what caused the chip row to sit noticeably closer
+    // to the feed buttons on first paint than after any re-render. Padding
+    // alone sizes the row in a single, synchronous pass: always
+    // paddingTop + chip height + paddingBottom, every time.
+    chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10 },
     // A plain, fixed-height spacer rather than relying on padding alone —
     // the chips live in their own horizontal ScrollView, and padding on
     // its content container wasn't reading as enough separation from the
