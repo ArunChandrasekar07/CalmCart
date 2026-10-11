@@ -95,6 +95,7 @@ export default function HomeScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipsScroll}
         contentContainerStyle={styles.chipsRow}
       >
         {(['All', ...CATEGORIES] as const).map((c) => {
@@ -197,12 +198,17 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     feedBtnActive: { backgroundColor: colors.accent },
     feedBtnText: { fontFamily: fonts.semiBold, fontSize: fs(13, scale), color: colors.textSecondary },
     feedBtnTextActive: { color: colors.onPrimary },
-    // Deliberately NO explicit height on the ScrollView itself — on
-    // Android that style isn't always reserved on the very first layout
-    // pass, which is what caused the chip row to sit noticeably closer
-    // to the feed buttons on first paint than after any re-render. Padding
-    // alone sizes the row in a single, synchronous pass: always
-    // paddingTop + chip height + paddingBottom, every time.
+    // A *horizontal* ScrollView doesn't reliably self-size its own height
+    // to its content on Android — with no explicit height it can
+    // mis-measure (too short, or collapsed) on the very first layout
+    // pass and clip the top of its content, correcting itself only after
+    // a later re-render. The earlier fixed height (76) avoided that but
+    // was taller than the actual content (22 + 34 + 10 = 66), so the
+    // "no explicit height" first paint and the "explicit height" later
+    // paints disagreed on spacing. Setting the height to exactly match
+    // the content removes the mismatch in both directions — nothing to
+    // mis-measure, nothing to settle later.
+    chipsScroll: { height: 66 },
     chipsRow: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 10, gap: 10 },
     // A plain, fixed-height spacer rather than relying on padding alone —
     // the chips live in their own horizontal ScrollView, and padding on
