@@ -8,7 +8,6 @@ import { useTheme, fs } from '../../theme/useTheme';
 const LINKS = [
   { icon: 'logo-github', label: 'GitHub', value: 'ArunChandrasekar07', url: 'https://github.com/ArunChandrasekar07' },
   { icon: 'globe-outline', label: 'Portfolio', value: 'arunc.vercel.app', url: 'https://arunc.vercel.app' },
-  { icon: 'code-slash-outline', label: 'LeetCode', value: 'ArunCodez', url: 'https://leetcode.com/ArunCodez' },
 ] as const;
 
 export default function SettingsScreen() {

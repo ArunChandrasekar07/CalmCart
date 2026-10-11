@@ -210,6 +210,12 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
     // product grid below it.
     categorySpacer: { height: 24 },
     chip: {
+      // A fixed minWidth so short names (All, Fruits, Dairy) and long ones
+      // (Beverages) don't read as inconsistently-sized buttons sitting
+      // next to each other — short labels now get equal padding either
+      // side instead of hugging the text, while long labels still grow
+      // past it as needed.
+      minWidth: 86,
       paddingHorizontal: 16,
       height: 34,
       borderRadius: radius.pill,
@@ -219,7 +225,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], radius: Retur
       marginRight: 10,
     },
     chipActive: { backgroundColor: colors.primary },
-    chipText: { fontFamily: fonts.medium, fontSize: fs(13, scale), color: colors.textSecondary },
+    chipText: { fontFamily: fonts.medium, fontSize: fs(13, scale), color: colors.textSecondary, textAlign: 'center' },
     chipTextActive: { color: colors.onPrimary },
     resultCount: {
       fontFamily: fonts.regular,
